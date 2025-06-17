@@ -1,7 +1,6 @@
-// src/components/Profile/ProfileForm.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-function ProfileForm({ onAdd, onClose }) {
+function ProfileForm({ initialData = null, onAdd, onUpdate, onClose }) {
   const [formData, setFormData] = useState({
     nisn: '',
     nama: '',
@@ -12,25 +11,44 @@ function ProfileForm({ onAdd, onClose }) {
     alamat: ''
   });
 
+  // Set nilai awal jika edit
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
+
   const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const isEdit = Boolean(initialData);
+    const url = isEdit
+      ? `http://localhost:5000/api/profiles/${initialData._id}`
+      : 'http://localhost:5000/api/profiles';
+
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
-      const res = await fetch('http://localhost:5000/api/profiles', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+
       const data = await res.json();
+
       if (res.ok) {
-        onAdd(data);
-        setFormData({ nisn: '', nama: '', tanggal_lahir: '', kelas: '', email: '', no_hp: '', alamat: '' });
+        if (isEdit) {
+          onUpdate && onUpdate(data);
+        } else {
+          onAdd && onAdd(data);
+        }
         onClose();
       } else {
-        alert("Gagal menambahkan profil: " + data.message);
+        alert("Gagal menyimpan data: " + data.message);
       }
     } catch (err) {
       console.error(err);
@@ -40,7 +58,9 @@ function ProfileForm({ onAdd, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
-        <h2 className="text-lg font-bold mb-4">Tambah Profil Siswa</h2>
+        <h2 className="text-lg font-bold mb-4">
+          {initialData ? 'Edit Profil Siswa' : 'Tambah Profil Siswa'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           {['nisn', 'nama', 'tanggal_lahir', 'kelas', 'email', 'no_hp', 'alamat'].map(field => (
             <input
@@ -59,7 +79,7 @@ function ProfileForm({ onAdd, onClose }) {
               Batal
             </button>
             <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-              Simpan
+              {initialData ? 'Update' : 'Simpan'}
             </button>
           </div>
         </form>
